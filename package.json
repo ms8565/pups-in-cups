@@ -1,0 +1,24 @@
+{
+  "name": "pups-in-cups",
+  "version": "1.0.0",
+  "engines": {
+    "node": "6.5.0"
+  },
+  "description": "syncing data part 1",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./src/server.js",
+    "pretest": "eslint ./src --fix",
+    "test": "echo test complete"
+  },
+  "author": "Madison Smith",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^3.6.1",
+    "eslint-config-airbnb": "^12.0.0",
+    "eslint-plugin-import": "^2.0.0"
+  },
+  "dependencies": {
+    "socket.io": "^1.4.8"
+  }
+}

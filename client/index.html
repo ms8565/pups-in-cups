@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
+    <script type="text/javascript" > 
+        "use strict";
+        let socket;
+        
+        let players = {};
+        let pups = [];
+        let myPlayer;
+        
+        let canvas;
+        let ctx;
+        let dragging = false;
+        
+        class Player {
+
+            constructor(x){
+                this.x = x;
+                this.y = canvas.height-80;
+                this.color = "red";
+                this.id = 0;
+            }
+        };
+        
+        
+        const init = (e) => {
+            canvas = document.querySelector('canvas');
+            ctx = canvas.getContext('2d');
+            
+            canvas.onmousedown = onMouseDown;
+            canvas.onmouseup = onMouseUp;
+            canvas.onmousemove = onMouseMove;
+            
+            
+            socket = io.connect();
+            setupSocket();
+        };
+        window.onload = init;
+        
+        const setupSocket = (e) => {
+            socket.on('connect', () => {
+                myPlayer = new Player(canvas.width/2);
+                socket.emit('join', { newPlayer: myPlayer });
+            });
+            socket.on('updateClientPlayers', (data) => {
+              players = data.updatePlayers;
+              draw();
+
+            });
+            socket.on('updateClientPups', (data) => {
+              pups = data.updateCPups;
+              draw();
+            });
+
+        };
+        
+        const onMouseDown = (e) => {
+            var mouse = {};
+            mouse.x = e.pageX - e.target.offsetLeft;
+            mouse.y = e.pageY - e.target.offsetTop;
+            
+            dragging = true;
+
+        };
+        const onMouseUp = (e) => {
+            dragging = false;
+        };
+        const onMouseMove = (e) => {
+            var mouse = {};
+            mouse.x = e.pageX - e.target.offsetLeft;
+            mouse.y = e.pageY - e.target.offsetTop;
+            
+            myPlayer.x = mouse.x;
+            socket.emit('updateServerPlayers', { player: myPlayer });
+            
+        };
+        
+        const draw = (e) => {
+          ctx.fillStyle = "white";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          for (var i in players) {
+            ctx.save();
+
+            ctx.fillStyle = players[i].color;
+            ctx.beginPath();
+            ctx.arc(players[i].x, players[i].y, 40, 0, 2 * Math.PI, false)
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.restore();
+          }
+          for (var i = 0; i < pups.length; i++) {
+            ctx.save();
+
+            ctx.fillStyle = "blue";
+            ctx.beginPath();
+            ctx.arc(pups[i].x, pups[i].y, 20, 0, 2 * Math.PI, false)
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.restore();
+          }
+        };
+        
+        
+        
+    
+    </script>
+</head>
+<body>
+    <canvas width="800" height="600">
+		Your browser does not support Canvas
+	</canvas>
+</body>
+</html>
