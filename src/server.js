@@ -19,9 +19,12 @@ console.log(`Listening on 127.0.0.1: ${port}`);
 const io = socketio(app);
 
 const players = {};
-const pups = [];
+let pups = [];
+const availableColors = ['yellow', 'red', 'orange', 'pink'];
 let gameStart = true;
-// let numPlayers = 0;
+let numPlayers = 0;
+let score = 0;
+let pupsMissed = 0;
 
 class Pup {
 
@@ -30,26 +33,47 @@ class Pup {
     this.y = y;
     this.xVelocity = xVelocity;
     this.yVelocity = yVelocity;
+    this.color = 'blue';
+    this.radius = 20;
+    this.active = true;
   }
-  update() {
+  update(socket) {
     this.x += this.xVelocity;
     this.y += this.yVelocity;
+
+    if (this.y >= 400) {
+      for (var i in players) {
+        if (this.isColliding(players[i])) {
+          this.color = 'green';
+          score += 20;
+          io.sockets.in('room1').emit('updateClientScore', { serverScore: score, serverMissed: pupsMissed });
+          this.active = false;
+        }
+      }
+      if (this.y >= 600) {
+        pupsMissed += 1;
+        io.sockets.in('room1').emit('updateClientScore', { serverScore: score, serverMissed: pupsMissed });
+        this.active = false;
+      }
+    }
+  }
+  isColliding(otherObj) {
+    var distance = Math.sqrt(Math.pow((otherObj.x - this.x), 2) + Math.pow((otherObj.y - this.y), 2));
+    return  distance <= (this.radius + otherObj.radius);
   }
 }
 
-const updatePups = () => {
-  /* for (let i = 0; i < pups.length; i++) {
-    pups[i].update();
-  }*/
+const removeInactivePups = (value) => {
+  return value.active;
+};
 
-  // I want to just use a for loop, but the test guide doesn't like unary operators
-  // I'll use this uncomfortable while loop instead
-  // To be investigated at a later time
-  let i = 0;
-  while (i < pups.length) {
+const updatePups = () => {
+  pups = pups.filter(removeInactivePups, pups);
+
+  for (let i = 0; i < pups.length; i += 1) {
     pups[i].update();
-    i += 1;
   }
+
   io.sockets.in('room1').emit('updateClientPups', { updateCPups: pups });
 };
 
@@ -70,23 +94,17 @@ const onJoined = (sock) => {
     socket.join('room1');
     players[socket.id] = data.newPlayer;
 
-   /* if (numPlayers = 1) {
-      players[socket.id].color = 'orange';
-    }
-    else if (numPlayers = 2) {
-      players[socket.id].color = 'pink';
-    }
-    else if (numPlayers = 3) {
-      players[socket.id].color = 'yellow';
-    }*/
+    var randomColor = Math.floor(Math.random() * availableColors.length);
+    players[socket.id].color = availableColors.splice(Math.floor(Math.random() * availableColors.length), 1);
 
+    socket.emit('assignPlayer', { player: players[socket.id]});
     io.sockets.in('room1').emit('updateClientPlayers', { updatePlayers: players });
 
     if (gameStart) {
       initializeGame();
       gameStart = false;
     }
-    // numPlayers += 1;
+    numPlayers += 1;
   });
 };
 
@@ -96,6 +114,9 @@ const onDisconnect = (sock) => {
 
   socket.on('disconnect', () => {
     socket.leave('room1');
+    availableColors.push(players[socket.id].color);
+    delete players[socket.id];
+    numPlayers -= 1;
   });
 };
 

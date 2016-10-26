@@ -4,7 +4,8 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
     <script type="text/javascript" > 
-        "use strict";
+      "use strict";
+
         let socket;
         
         let players = {};
@@ -14,6 +15,9 @@
         let canvas;
         let ctx;
         let dragging = false;
+       
+        let score = 0;
+        let pupsMissed = 0;
         
         class Player {
 
@@ -22,7 +26,11 @@
                 this.y = canvas.height-80;
                 this.color = "red";
                 this.id = 0;
+                this.radius = 40;
             }
+          isColliding(otherObj) {
+            return (Math.pow((otherObj.x - this.x), 2) + Math.pow((otherObj.y - this.y), 2)) <= Math.pow((this.radius + otherObj.radius), 2);
+          }
         };
         
         
@@ -42,16 +50,26 @@
         
         const setupSocket = (e) => {
             socket.on('connect', () => {
-                myPlayer = new Player(canvas.width/2);
-                socket.emit('join', { newPlayer: myPlayer });
+              myPlayer = new Player(canvas.width / 2);
+              socket.emit('join', { newPlayer: myPlayer });
             });
             socket.on('updateClientPlayers', (data) => {
               players = data.updatePlayers;
               draw();
 
             });
+            socket.on('assignPlayer', (data) => {
+              myPlayer.color = data.player.color;
+              draw();
+
+            });
             socket.on('updateClientPups', (data) => {
               pups = data.updateCPups;
+              draw();
+            });
+            socket.on('updateClientScore', (data) => {
+              score = data.serverScore;
+              pupsMissed = data.serverMissed;
               draw();
             });
 
@@ -84,19 +102,22 @@
 
           for (var i in players) {
             ctx.save();
-
             ctx.fillStyle = players[i].color;
-            ctx.beginPath();
-            ctx.arc(players[i].x, players[i].y, 40, 0, 2 * Math.PI, false)
-            ctx.fill();
-            ctx.stroke();
+            //ctx.beginPath();
+            //60, 34
+            //ctx.arc(players[i].x, players[i].y, 40, 0, 2 * Math.PI, false)
+            //ctx.fill();
+            //ctx.stroke();
+            var cupImage = new Image();
+            cupImage.src = "https://people.rit.edu/ms8565/430/media/cup.png";
+            ctx.drawImage(cupImage, players[i].x, players[i].y, 80, 45);
 
             ctx.restore();
           }
           for (var i = 0; i < pups.length; i++) {
             ctx.save();
 
-            ctx.fillStyle = "blue";
+            ctx.fillStyle = pups[i].color;
             ctx.beginPath();
             ctx.arc(pups[i].x, pups[i].y, 20, 0, 2 * Math.PI, false)
             ctx.fill();
@@ -104,6 +125,9 @@
 
             ctx.restore();
           }
+
+          ctx.fillStyle = "black";
+          ctx.fillText("Score: "+score+" Pups Missed: "+pupsMissed, 60, 60);
         };
         
         
