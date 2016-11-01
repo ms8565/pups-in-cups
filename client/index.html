@@ -4,7 +4,6 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
     <script type="text/javascript" > 
-      "use strict";
 
         let socket;
         
@@ -37,11 +36,14 @@
         const init = (e) => {
             canvas = document.querySelector('canvas');
             ctx = canvas.getContext('2d');
-            
+
             canvas.onmousedown = onMouseDown;
             canvas.onmouseup = onMouseUp;
             canvas.onmousemove = onMouseMove;
-            
+
+            const join = document.querySelector("#join");
+            join.addEventListener('click', checkJoinRoom);
+            //startGame(); // to be removed
             
             socket = io.connect();
             setupSocket();
@@ -51,29 +53,73 @@
         const setupSocket = (e) => {
             socket.on('connect', () => {
               myPlayer = new Player(canvas.width / 2);
-              socket.emit('join', { newPlayer: myPlayer });
+              socket.emit('join', { newPlayer: myPlayer, roomName: "room1" });
             });
             socket.on('updateClientPlayers', (data) => {
-              players = data.updatePlayers;
-              draw();
+                console.log("but like actually updating players");
+                players = data.updatePlayers;
+                draw();
 
             });
             socket.on('assignPlayer', (data) => {
-              myPlayer.color = data.player.color;
-              draw();
+                console.log("player assigned in client");
+                myPlayer.color = data.player.color;
+                draw();
 
             });
             socket.on('updateClientPups', (data) => {
-              pups = data.updateCPups;
-              draw();
+                pups = data.updateCPups;
+                draw();
             });
             socket.on('updateClientScore', (data) => {
-              score = data.serverScore;
-              pupsMissed = data.serverMissed;
-              draw();
+                score = data.serverScore;
+                pupsMissed = data.serverMissed;
+                draw();
             });
+            
+
+
+            /*socket.on('joinRoom', (data) => {
+                startGame();
+            });
+            socket.on('denyRoom', (data) => {
+
+            });*/
 
         };
+
+        /*const startGame = () => {
+            canvas = document.querySelector('canvas');
+            ctx = canvas.getContext('2d');
+
+            canvas.onmousedown = onMouseDown;
+            canvas.onmouseup = onMouseUp;
+            canvas.onmousemove = onMouseMove;
+
+            socket.on('updateClientPlayers', (data) => {
+                players = data.updatePlayers;
+                draw();
+
+            });
+            socket.on('assignPlayer', (data) => {
+                myPlayer.color = data.player.color;
+                draw();
+
+            });
+            socket.on('updateClientPups', (data) => {
+                pups = data.updateCPups;
+                draw();
+            });
+            socket.on('updateClientScore', (data) => {
+                score = data.serverScore;
+                pupsMissed = data.serverMissed;
+                draw();
+            });
+        }*/
+
+        const checkJoinRoom = () => {
+            let roomName = document.querySelector("#join-room-name").value;
+        }
         
         const onMouseDown = (e) => {
             var mouse = {};
@@ -110,7 +156,7 @@
             //ctx.stroke();
             var cupImage = new Image();
             cupImage.src = "https://people.rit.edu/ms8565/430/media/cup.png";
-            ctx.drawImage(cupImage, players[i].x, players[i].y, 80, 45);
+            ctx.drawImage(cupImage, players[i].x - 40, players[i].y, 80, 45);
 
             ctx.restore();
           }
@@ -136,8 +182,22 @@
     </script>
 </head>
 <body>
-    <canvas width="800" height="600">
-		Your browser does not support Canvas
-	</canvas>
+    <game-screen>
+        <canvas width="800" height="600">
+            Your browser does not support Canvas
+        </canvas>
+    </game-screen>
+    
+    <intro-screen>
+        <label for="join-room">Room Name:</label>
+        <input id="join-room-name" name="join-room" type="text" />
+        <input id="join" type='button' value='Join Room' />
+
+        <label for="create-room">Room Name:</label>
+        <input id="create-room-name" name="create-room" type="text" />
+        <input id="create" type='button' value='Create Room' />
+    </intro-screen>
+
+    
 </body>
 </html>
