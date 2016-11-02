@@ -104,6 +104,10 @@ class Room {
     this.availableColors.push(this.players[sock.id].color);
     delete this.players[sock.id];
     this.numPlayers -= 1;
+      
+    //if(numPlayers <= 0){
+    //    delete rooms[this.name];
+    //}
   }
   initializeGame() {
     spawnPup(this);
@@ -154,6 +158,32 @@ const onJoined = (sock) => {
     socket.roomName = data.roomName;
     rooms[data.roomName].addPlayer(socket, data.newPlayer);
   });
+  socket.on('checkJoin', (data) => {
+    if(data.roomName in rooms){
+      //if(rooms[data.roomName].numPlayers <=4 ){
+        socket.roomName = data.roomName;
+        socket.emit('joinRoom', { roomName: data.roomName });
+      //}
+      else{
+        socket.emit('denyRoom', { message: "Room is full" });
+      }
+    }
+    else{
+      socket.emit('denyRoom', { message: "Room does not exist" });
+    }
+    
+  });
+  socket.on('checkCreate', (data) => {
+    if(!(data.roomName in rooms)){
+      rooms[data.roomName] = new Room(data.roomName)
+        
+      socket.roomName = data.roomName;
+      socket.emit('joinRoom', { roomName: data.roomName });
+    }
+    else{
+      socket.emit('denyRoom', { message: "Room already exists" });
+    }
+  });
 };
 
 
@@ -161,7 +191,9 @@ const onDisconnect = (sock) => {
   const socket = sock;
 
   socket.on('disconnect', () => {
-    rooms[socket.roomName].removePlayer(socket);
+    if(socket.roomName){
+      rooms[socket.roomName].removePlayer(socket);
+    }
   });
 };
 

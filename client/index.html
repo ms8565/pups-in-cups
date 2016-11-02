@@ -37,13 +37,11 @@
             canvas = document.querySelector('canvas');
             ctx = canvas.getContext('2d');
 
-            canvas.onmousedown = onMouseDown;
-            canvas.onmouseup = onMouseUp;
-            canvas.onmousemove = onMouseMove;
-
             const join = document.querySelector("#join");
             join.addEventListener('click', checkJoinRoom);
-            //startGame(); // to be removed
+            
+            const create = document.querySelector("#create");
+            create.addEventListener('click', checkCreateRoom);
             
             socket = io.connect();
             setupSocket();
@@ -52,10 +50,11 @@
         
         const setupSocket = (e) => {
             socket.on('connect', () => {
-              myPlayer = new Player(canvas.width / 2);
-              socket.emit('join', { newPlayer: myPlayer, roomName: "room1" });
+              //myPlayer = new Player(canvas.width / 2);
+              //socket.emit('join', { newPlayer: myPlayer, roomName: "room1" });
+              //startGame();
             });
-            socket.on('updateClientPlayers', (data) => {
+            /*socket.on('updateClientPlayers', (data) => {
                 console.log("but like actually updating players");
                 players = data.updatePlayers;
                 draw();
@@ -75,23 +74,32 @@
                 score = data.serverScore;
                 pupsMissed = data.serverMissed;
                 draw();
-            });
+            });*/
             
 
 
-            /*socket.on('joinRoom', (data) => {
-                startGame();
+            socket.on('joinRoom', (data) => {
+                startGame(data.roomName);
+                //myPlayer = new Player(canvas.width / 2);
+                //socket.emit('join', { newPlayer: myPlayer, roomName: "room1" });
             });
             socket.on('denyRoom', (data) => {
-
-            });*/
+                let errorText = document.querySelector("#error-text");
+                errorText.innerHTML = data.message;
+            });
 
         };
 
-        /*const startGame = () => {
-            canvas = document.querySelector('canvas');
-            ctx = canvas.getContext('2d');
-
+        const startGame = (room) => {
+            let introScreen = document.querySelector("#intro-screen");
+            introScreen.style.display = "none";
+            
+            let gameScreen = document.querySelector("#game-screen");
+            gameScreen.style.display = "block";
+            
+            myPlayer = new Player(canvas.width / 2);
+            socket.emit('join', { newPlayer: myPlayer, roomName: room });
+            
             canvas.onmousedown = onMouseDown;
             canvas.onmouseup = onMouseUp;
             canvas.onmousemove = onMouseMove;
@@ -115,10 +123,15 @@
                 pupsMissed = data.serverMissed;
                 draw();
             });
-        }*/
+        }
 
         const checkJoinRoom = () => {
-            let roomName = document.querySelector("#join-room-name").value;
+            let roomInput = document.querySelector("#room-input").value;
+            socket.emit('checkJoin', { roomName: roomInput });
+        }
+        const checkCreateRoom = () => {
+            let roomInput = document.querySelector("#room-input").value;
+            socket.emit('checkCreate', { roomName: roomInput });
         }
         
         const onMouseDown = (e) => {
@@ -182,21 +195,19 @@
     </script>
 </head>
 <body>
-    <game-screen>
+    <div id="game-screen" style="display: none;">
         <canvas width="800" height="600">
             Your browser does not support Canvas
         </canvas>
-    </game-screen>
+    </div>
     
-    <intro-screen>
-        <label for="join-room">Room Name:</label>
-        <input id="join-room-name" name="join-room" type="text" />
+    <div id="intro-screen">
+        <label for="room-name">Room Name:</label>
+        <input id="room-input" name="room-name" type="text" />
         <input id="join" type='button' value='Join Room' />
-
-        <label for="create-room">Room Name:</label>
-        <input id="create-room-name" name="create-room" type="text" />
         <input id="create" type='button' value='Create Room' />
-    </intro-screen>
+        <p id="error-text"></p>
+    </div>
 
     
 </body>
