@@ -164,9 +164,9 @@ const onJoined = (sock) => {
         socket.roomName = data.roomName;
         socket.emit('joinRoom', { roomName: data.roomName });
       //}
-      else{
+      //else{
         socket.emit('denyRoom', { message: "Room is full" });
-      }
+      //}
     }
     else{
       socket.emit('denyRoom', { message: "Room does not exist" });
