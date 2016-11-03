@@ -105,9 +105,9 @@ class Room {
     delete this.players[sock.id];
     this.numPlayers -= 1;
       
-    //if(numPlayers <= 0){
-    //    delete rooms[this.name];
-    //}
+    if(this.numPlayers <= 0){
+        delete rooms[this.name];
+    }
   }
   initializeGame() {
     spawnPup(this);
@@ -116,20 +116,24 @@ class Room {
   
 }
 updatePups = (room) => {
-    room.pups = room.pups.filter(removeInactivePups, room.pups);
+    if(room.name in rooms){
+        room.pups = room.pups.filter(removeInactivePups, room.pups);
 
-    for (let i = 0; i < room.pups.length; i += 1) {
-      room.pups[i].update(room);
+        for (let i = 0; i < room.pups.length; i += 1) {
+          room.pups[i].update(room);
+        }
+
+        io.sockets.in(room.name).emit('updateClientPups', { updateCPups: room.pups });
+        setTimeout(function() {updatePups(room);}, 30);
     }
-
-    io.sockets.in(room.name).emit('updateClientPups', { updateCPups: room.pups });
-    setTimeout(function() {updatePups(room);}, 30);
     
   }
   spawnPup = (room) => {
-    room.pups.push(new Pup((Math.random() * 800), 0, 0, 5));
-    
-    setTimeout( function() {spawnPup(room);}, 3000);
+    if(room.name in rooms){
+        room.pups.push(new Pup((Math.random() * 800), 0, 0, 5));
+
+        setTimeout( function() {spawnPup(room);}, 3000);
+    }
   }
 
 
@@ -160,13 +164,14 @@ const onJoined = (sock) => {
   });
   socket.on('checkJoin', (data) => {
     if(data.roomName in rooms){
-      //if(rooms[data.roomName].numPlayers <=4 ){
+      console.log(rooms[data.roomName].numPlayers );
+      if(rooms[data.roomName].numPlayers < 4 ){
         socket.roomName = data.roomName;
         socket.emit('joinRoom', { roomName: data.roomName });
-      //}
-      //else{
+      }
+      else{
         socket.emit('denyRoom', { message: "Room is full" });
-      //}
+      }
     }
     else{
       socket.emit('denyRoom', { message: "Room does not exist" });
