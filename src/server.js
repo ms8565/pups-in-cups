@@ -32,31 +32,58 @@ class Pup {
     this.active = true;
   }
   update(room) {
-    let score = 0;
-    let pupsMissed = 0;
-
     this.x += this.xVelocity;
     this.y += this.yVelocity;
 
     if (this.y >= 400) {
-      for (var i in room.players) {
+      const rPlayers = Object.keys(room.players);
+      for (const i of rPlayers) {
         if (this.isColliding(room.players[i])) {
           this.color = 'green';
-          room.score += 20;
+
+          room.setScore(room.score + 20);
+
           io.sockets.in(room.name).emit('updateClientScore', { serverScore: room.score, serverMissed: room.pupsMissed });
           this.active = false;
         }
       }
       if (this.y >= 600) {
-        room.pupsMissed += 1;
+        room.setPupsMissed(room.pupsMissed + 1);
+          
         io.sockets.in(room.name).emit('updateClientScore', { serverScore: room.score, serverMissed: room.pupsMissed });
         this.active = false;
       }
     }
   }
   isColliding(otherObj) {
-    const distance = Math.sqrt(Math.pow((otherObj.x - this.x), 2) + Math.pow((otherObj.y - this.y), 2));
+    const d1 = Math.pow((otherObj.x - this.x), 2);
+    const d2 = Math.pow((otherObj.y - this.y), 2);
+    const distance = Math.sqrt(d1 + d2);
+
     return distance <= (this.radius + otherObj.radius);
+  }
+}
+
+const removeInactivePups = value => value.active;
+function updatePups(room) {
+  if (room.name in rooms) {
+    // room.pups = room.pups.filter(removeInactivePups, room.pups);
+    room.filterPups();
+
+    for (let i = 0; i < room.pups.length; i += 1) {
+      room.pups[i].update(room);
+    }
+
+    io.sockets.in(room.name).emit('updateClientPups', { updateCPups: room.pups });
+    setTimeout(() => { updatePups(room); }, 30);
+  }
+}
+
+function spawnPup(room) {
+  if (room.name in rooms) {
+    room.pups.push(new Pup((Math.random() * 800), 0, 0, 5));
+
+    setTimeout(() => { spawnPup(room); }, 3000);
   }
 }
 
@@ -78,7 +105,7 @@ class Room {
     this.players[sock.id] = newPlayer;
 
     const randomColor = Math.floor(Math.random() * this.availableColors.length);
-    this.players[sock.id].color = this.availableColors.splice(Math.floor(Math.random() * this.availableColors.length), 1);
+    this.players[sock.id].color = this.availableColors.splice(randomColor, 1);
 
     sock.emit('assignPlayer', { player: this.players[sock.id] });
     io.sockets.in(this.name).emit('updateClientPlayers', { updatePlayers: this.players });
@@ -88,14 +115,12 @@ class Room {
       this.gameStart = false;
     }
     this.numPlayers += 1;
-      
-    console.log("player added");
+
   }
   updatePlayer(socket, player) {
     const sock = socket;
     this.players[sock.id] = player;
     io.sockets.in(this.name).emit('updateClientPlayers', { updatePlayers: this.players });
-    
   }
   removePlayer(socket) {
     const sock = socket;
@@ -104,53 +129,26 @@ class Room {
     this.availableColors.push(this.players[sock.id].color);
     delete this.players[sock.id];
     this.numPlayers -= 1;
-      
-    if(this.numPlayers <= 0){
-        delete rooms[this.name];
+
+    if (this.numPlayers <= 0) {
+      delete rooms[this.name];
     }
   }
   initializeGame() {
     spawnPup(this);
     updatePups(this);
   }
-  
+  filterPups() {
+    this.pups = this.pups.filter(removeInactivePups, this.pups);
+  }
+  setScore(score) {
+    this.score = score;
+  }
+  setPupsMissed(pupsMissed) {
+    this.pupsMissed = pupsMissed;
+  }
 }
-updatePups = (room) => {
-    if(room.name in rooms){
-        room.pups = room.pups.filter(removeInactivePups, room.pups);
 
-        for (let i = 0; i < room.pups.length; i += 1) {
-          room.pups[i].update(room);
-        }
-
-        io.sockets.in(room.name).emit('updateClientPups', { updateCPups: room.pups });
-        setTimeout(function() {updatePups(room);}, 30);
-    }
-    
-  }
-  spawnPup = (room) => {
-    if(room.name in rooms){
-        room.pups.push(new Pup((Math.random() * 800), 0, 0, 5));
-
-        setTimeout( function() {spawnPup(room);}, 3000);
-    }
-  }
-
-
- const removeInactivePups = (value) =>{
-    return value.active;
- };
-
-/*const removeInactivePups = (value) =>{
-    return value.active
- };*/
-
-
-const initializeGame = () => {
-  spawnPup();
-  setInterval(spawnPup, 3000);
-  setInterval(updatePups, 30);
-};
 
 const testRoom = new Room('room1');
 rooms[testRoom.name] = testRoom;
@@ -163,30 +161,26 @@ const onJoined = (sock) => {
     rooms[data.roomName].addPlayer(socket, data.newPlayer);
   });
   socket.on('checkJoin', (data) => {
-    if(data.roomName in rooms){
-      console.log(rooms[data.roomName].numPlayers );
-      if(rooms[data.roomName].numPlayers < 4 ){
+    if (data.roomName in rooms) {
+      console.log(rooms[data.roomName].numPlayers);
+      if (rooms[data.roomName].numPlayers < 4) {
         socket.roomName = data.roomName;
         socket.emit('joinRoom', { roomName: data.roomName });
+      } else {
+        socket.emit('denyRoom', { message: 'Room is full' });
       }
-      else{
-        socket.emit('denyRoom', { message: "Room is full" });
-      }
+    } else {
+      socket.emit('denyRoom', { message: 'Room does not exist' });
     }
-    else{
-      socket.emit('denyRoom', { message: "Room does not exist" });
-    }
-    
   });
   socket.on('checkCreate', (data) => {
-    if(!(data.roomName in rooms)){
-      rooms[data.roomName] = new Room(data.roomName)
-        
+    if (!(data.roomName in rooms)) {
+      rooms[data.roomName] = new Room(data.roomName);
+
       socket.roomName = data.roomName;
       socket.emit('joinRoom', { roomName: data.roomName });
-    }
-    else{
-      socket.emit('denyRoom', { message: "Room already exists" });
+    } else {
+      socket.emit('denyRoom', { message: 'Room already exists' });
     }
   });
 };
@@ -196,7 +190,7 @@ const onDisconnect = (sock) => {
   const socket = sock;
 
   socket.on('disconnect', () => {
-    if(socket.roomName){
+    if (socket.roomName) {
       rooms[socket.roomName].removePlayer(socket);
     }
   });

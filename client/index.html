@@ -3,7 +3,7 @@
 <head>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
-    <script type="text/javascript" > 
+    <script type="text/babel" > 
 
         let socket;
         
@@ -54,29 +54,6 @@
               //socket.emit('join', { newPlayer: myPlayer, roomName: "room1" });
               //startGame();
             });
-            /*socket.on('updateClientPlayers', (data) => {
-                console.log("but like actually updating players");
-                players = data.updatePlayers;
-                draw();
-
-            });
-            socket.on('assignPlayer', (data) => {
-                console.log("player assigned in client");
-                myPlayer.color = data.player.color;
-                draw();
-
-            });
-            socket.on('updateClientPups', (data) => {
-                pups = data.updateCPups;
-                draw();
-            });
-            socket.on('updateClientScore', (data) => {
-                score = data.serverScore;
-                pupsMissed = data.serverMissed;
-                draw();
-            });*/
-            
-
 
             socket.on('joinRoom', (data) => {
                 startGame(data.roomName);
