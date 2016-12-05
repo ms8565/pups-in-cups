@@ -21,7 +21,7 @@
         let showScores = false;
         let highScores = [];
 
-        let showStartBtn = false;
+        let startBtn;
         
         class Player {
 
@@ -36,6 +36,33 @@
             return (Math.pow((otherObj.x - this.x), 2) + Math.pow((otherObj.y - this.y), 2)) <= Math.pow((this.radius + otherObj.radius), 2);
           }
         };
+
+        class StartBtn {
+            constructor(x, y){
+                this.x = x;
+                this.y = y;
+                this.img = "";
+                this.hoverImg = ""
+                this.height = 20;
+                this.width = 40;
+                this.hover = false;
+                this.active = true;
+            }
+            pointInside(point){
+                
+            }
+            onClick(){
+                socket.emit('startGame', { startGame: true });
+            }
+            draw(ctx){
+                if(hover){
+                    
+                }
+                else{
+                    
+                }
+            }
+        }
         
         
         const init = (e) => {
@@ -81,6 +108,8 @@
             
             myPlayer = new Player(canvas.width / 2);
             socket.emit('join', { newPlayer: myPlayer, roomName: room });
+            
+            startBtn = new StartBtn(0,0);
             
             canvas.onmousedown = onMouseDown;
             canvas.onmouseup = onMouseUp;
@@ -130,6 +159,12 @@
             mouse.y = e.pageY - e.target.offsetTop;
             
             dragging = true;
+            
+            if(startBtn.active){
+                if(startBtn.pointInside(mouse)){
+                    startBtn.onClick();
+                }
+            }
 
         };
         const onMouseUp = (e) => {
@@ -142,6 +177,15 @@
             
             myPlayer.x = mouse.x;
             socket.emit('updateServerPlayers', { player: myPlayer });
+            
+            if(startBtn.active){
+                if(startBtn.pointInside(mouse)){
+                    startBtn.hover = true;
+                }
+                else{
+                    startBtn.hover = false;
+                }
+            }
             
         };
         
@@ -184,6 +228,9 @@
                   ctx.fillStyle = "black";
                   ctx.fillText(highScores[i][0]+": "+highScores[i][1], 100, 200 + i*10);
               }
+          }
+          if(startBtn.active){
+              //draw start button
           }
         };
         
