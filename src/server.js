@@ -19,6 +19,7 @@ console.log(`Listening on 127.0.0.1: ${port}`);
 const io = socketio(app);
 
 const rooms = {};
+const highScores = [];
 
 class Pup {
 
@@ -30,8 +31,11 @@ class Pup {
     this.color = 'blue';
     this.radius = 20;
     this.active = true;
+    this.yAccel = .2;
   }
   update(room) {
+    this.yVelocity += this.yAccel;
+    
     this.x += this.xVelocity;
     this.y += this.yVelocity;
 
@@ -65,25 +69,35 @@ class Pup {
 }
 
 const removeInactivePups = value => value.active;
+
 function updatePups(room) {
   if (room.name in rooms) {
-    // room.pups = room.pups.filter(removeInactivePups, room.pups);
-    room.filterPups();
+        // room.pups = room.pups.filter(removeInactivePups, room.pups);
+        if(room.active){
+        room.filterPups();
 
-    for (let i = 0; i < room.pups.length; i += 1) {
-      room.pups[i].update(room);
-    }
+        for (let i = 0; i < room.pups.length; i += 1) {
+          room.pups[i].update(room);
+        }
 
-    io.sockets.in(room.name).emit('updateClientPups', { updateCPups: room.pups });
-    setTimeout(() => { updatePups(room); }, 30);
+        io.sockets.in(room.name).emit('updateClientPups', { updateCPups: room.pups });
+        setTimeout(() => { updatePups(room); }, 30);
+      }
   }
 }
 
-function spawnPup(room) {
+function spawnPup(room, spawnTime, yVelocity) {
   if (room.name in rooms) {
-    room.pups.push(new Pup((Math.random() * 800), 0, 0, 5));
-
-    setTimeout(() => { spawnPup(room); }, 3000);
+    room.pups.push(new Pup((Math.random() * 800), 0, 0, yVelocity));
+    
+    if(spawnTime <= 200){
+        spawnTime = 200;
+    }
+    if(yVelocity >= 20){
+        yVelocity = 20;
+    }
+      
+    setTimeout(() => { spawnPup(room, spawnTime-100, yVelocity+.03); }, spawnTime);
   }
 }
 
@@ -98,6 +112,7 @@ class Room {
     this.numPlayers = 0;
     this.score = 0;
     this.pupsMissed = 0;
+    this.active = true;
   }
   addPlayer(socket, newPlayer) {
     const sock = socket;
@@ -118,9 +133,11 @@ class Room {
 
   }
   updatePlayer(socket, player) {
-    const sock = socket;
-    this.players[sock.id] = player;
-    io.sockets.in(this.name).emit('updateClientPlayers', { updatePlayers: this.players });
+    if(this.active){
+        const sock = socket;
+        this.players[sock.id] = player;
+        io.sockets.in(this.name).emit('updateClientPlayers', { updatePlayers: this.players });
+    }
   }
   removePlayer(socket) {
     const sock = socket;
@@ -135,7 +152,7 @@ class Room {
     }
   }
   initializeGame() {
-    spawnPup(this);
+    spawnPup(this, 3000, 3.5);
     updatePups(this);
   }
   filterPups() {
@@ -146,6 +163,38 @@ class Room {
   }
   setPupsMissed(pupsMissed) {
     this.pupsMissed = pupsMissed;
+    if(this.pupsMissed >= 10){
+        this.active = false;
+        this.postGame();
+        
+        //this.restartGame();
+    }
+  }
+  restartGame(){
+    this.pups = [];
+    this.score = 0;
+    this.pupsMissed = 0;
+    this.active = true;
+  }
+  postGame(){
+    const score = new Array(this.name, this.score);
+    highScores.push(score);
+    
+    highScores.sort(function(a,b){
+        if(a[1] === b[1]){
+            return 0;
+        }
+        else{
+            return (a[1] > b[1]) ? -1 : 1;
+        }
+    });
+    
+    if(highScores.length >= 10){
+        highScores.pop();
+    }
+    
+    console.log(highScores);
+    io.sockets.in(this.name).emit('showScores', { scores: highScores });
   }
 }
 

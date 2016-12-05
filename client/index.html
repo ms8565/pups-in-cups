@@ -17,6 +17,11 @@
        
         let score = 0;
         let pupsMissed = 0;
+
+        let showScores = false;
+        let highScores = [];
+
+        let showStartBtn = false;
         
         class Player {
 
@@ -100,6 +105,14 @@
                 pupsMissed = data.serverMissed;
                 draw();
             });
+            socket.on('showScores', (data) => {
+                highScores = data.scores;
+                showScores = true;
+                draw();
+            });
+            socket.on('hideScores', (data) => {
+                showScores = false;
+            });
         }
 
         const checkJoinRoom = () => {
@@ -164,6 +177,14 @@
 
           ctx.fillStyle = "black";
           ctx.fillText("Score: "+score+" Pups Missed: "+pupsMissed, 60, 60);
+            
+          if(showScores){
+              ctx.fillText("High Scores", 100, 180);
+              for(var i = 0; i < highScores.length; i++){
+                  ctx.fillStyle = "black";
+                  ctx.fillText(highScores[i][0]+": "+highScores[i][1], 100, 200 + i*10);
+              }
+          }
         };
         
         
