@@ -72,32 +72,33 @@ const removeInactivePups = value => value.active;
 
 function updatePups(room) {
   if (room.name in rooms) {
-        // room.pups = room.pups.filter(removeInactivePups, room.pups);
         if(room.active){
-        room.filterPups();
+            room.filterPups();
 
-        for (let i = 0; i < room.pups.length; i += 1) {
-          room.pups[i].update(room);
-        }
+            for (let i = 0; i < room.pups.length; i += 1) {
+              room.pups[i].update(room);
+            }
 
-        io.sockets.in(room.name).emit('updateClientPups', { updateCPups: room.pups });
-        setTimeout(() => { updatePups(room); }, 30);
+            io.sockets.in(room.name).emit('updateClientPups', { updateCPups: room.pups });
+            setTimeout(() => { updatePups(room); }, 30);
       }
   }
 }
 
 function spawnPup(room, spawnTime, yVelocity) {
   if (room.name in rooms) {
-    room.pups.push(new Pup((Math.random() * 800), 0, 0, yVelocity));
-    
-    if(spawnTime <= 200){
-        spawnTime = 200;
+    if(room.active){
+        room.pups.push(new Pup((Math.random() * 800), 0, 0, yVelocity));
+
+        if(spawnTime <= 200){
+            spawnTime = 200;
+        }
+        if(yVelocity >= 20){
+            yVelocity = 20;
+        }
+
+        setTimeout(() => { spawnPup(room, spawnTime-100, yVelocity+.03); }, spawnTime);
     }
-    if(yVelocity >= 20){
-        yVelocity = 20;
-    }
-      
-    setTimeout(() => { spawnPup(room, spawnTime-100, yVelocity+.03); }, spawnTime);
   }
 }
 
@@ -112,7 +113,7 @@ class Room {
     this.numPlayers = 0;
     this.score = 0;
     this.pupsMissed = 0;
-    this.active = true;
+    this.active = false;
   }
   addPlayer(socket, newPlayer) {
     const sock = socket;
@@ -125,10 +126,10 @@ class Room {
     sock.emit('assignPlayer', { player: this.players[sock.id] });
     io.sockets.in(this.name).emit('updateClientPlayers', { updatePlayers: this.players });
 
-    if (this.gameStart) {
+   /* if (this.gameStart) {
       this.initializeGame();
       this.gameStart = false;
-    }
+    }*/
     this.numPlayers += 1;
 
   }
@@ -152,6 +153,7 @@ class Room {
     }
   }
   initializeGame() {
+    this.active = true;
     spawnPup(this, 3000, 3.5);
     updatePups(this);
   }
@@ -250,6 +252,11 @@ const onUpdate = (sock) => {
 
   socket.on('updateServerPlayers', (data) => {
     rooms[socket.roomName].updatePlayer(socket, data.player);
+  });
+  socket.on('startGame', () => {
+    if (socket.roomName) {
+      rooms[socket.roomName].initializeGame();
+    }
   });
 };
 
