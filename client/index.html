@@ -41,10 +41,10 @@
             constructor(x, y){
                 this.x = x;
                 this.y = y;
-                this.img = "";
-                this.hoverImg = ""
-                this.height = 40;
-                this.width = 100;
+                this.img = "./assets/media/startBtn.png";
+                this.hoverImg = "./assets/media/startBtn.png";
+                this.height = 60;
+                this.width = 200;
                 this.hover = false;
                 this.active = true;
             }
@@ -56,14 +56,20 @@
                 socket.emit('startGame', { startGame: true });
             }
             draw(ctx){
+                var btnImage = new Image();
+                
                 if(this.hover){
-                    ctx.fillStyle = "yellow";
-                    ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+                    //ctx.fillStyle = "yellow";
+                    //ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+                    
+                    btnImage.src = this.hoverImg;
                 }
                 else{
-                    ctx.fillStyle = "red";
-                    ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+                   // ctx.fillStyle = "red";
+                    //ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+                    btnImage.src = this.img;
                 }
+                ctx.drawImage(btnImage, this.x - this.width/2, this.y - this.height/2, this.width, this.height);
             }
         }
         
@@ -113,7 +119,6 @@
             socket.emit('join', { newPlayer: myPlayer, roomName: room });
             
             startBtn = new StartBtn(100,100);
-            startBtn.active = true;
             
             canvas.onmousedown = onMouseDown;
             canvas.onmouseup = onMouseUp;
@@ -138,13 +143,21 @@
                 pupsMissed = data.serverMissed;
                 draw();
             });
-            socket.on('showScores', (data) => {
-                highScores = data.scores;
-                showScores = true;
+            socket.on('showStartUI', (data) => {
+                startBtn.active = true;
                 draw();
             });
-            socket.on('hideScores', (data) => {
+            socket.on('showEndUI', (data) => {
+                highScores = data.scores;
+                showScores = true;
+                startBtn.active = true;
+                draw();
+            });
+            socket.on('hideUI', (data) => {
                 showScores = false;
+                startBtn.active = false;
+                
+                console.log("hide maybe??");
             });
         }
 
@@ -225,13 +238,13 @@
           }
 
           ctx.fillStyle = "black";
-          ctx.fillText("Score: "+score+" Pups Missed??: "+pupsMissed, 60, 60);
+          ctx.fillText("Score: "+score+" Pups Missed: "+pupsMissed, 60, 60);
             
           if(showScores){
               ctx.fillText("High Scores", 100, 180);
               for(var i = 0; i < highScores.length; i++){
                   ctx.fillStyle = "black";
-                  ctx.fillText(highScores[i][0]+": "+highScores[i][1], 100, 200 + i*10);
+                  ctx.fillText(i+1+". "+highScores[i][0]+": "+highScores[i][1], 100, 200 + i*10);
               }
           }
           if(startBtn.active){

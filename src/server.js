@@ -1,4 +1,4 @@
-const http = require('http');
+ const http = require('http');
 const fs = require('fs');
 const socketio = require('socket.io');
 
@@ -31,11 +31,11 @@ class Pup {
     this.color = 'blue';
     this.radius = 20;
     this.active = true;
-    this.yAccel = .2;
+    this.yAccel = 0.2;
   }
   update(room) {
     this.yVelocity += this.yAccel;
-    
+
     this.x += this.xVelocity;
     this.y += this.yVelocity;
 
@@ -53,7 +53,7 @@ class Pup {
       }
       if (this.y >= 600) {
         room.setPupsMissed(room.pupsMissed + 1);
-          
+
         io.sockets.in(room.name).emit('updateClientScore', { serverScore: room.score, serverMissed: room.pupsMissed });
         this.active = false;
       }
@@ -72,32 +72,32 @@ const removeInactivePups = value => value.active;
 
 function updatePups(room) {
   if (room.name in rooms) {
-        if(room.active){
-            room.filterPups();
+    if (room.active) {
+      room.filterPups();
 
-            for (let i = 0; i < room.pups.length; i += 1) {
-              room.pups[i].update(room);
-            }
-
-            io.sockets.in(room.name).emit('updateClientPups', { updateCPups: room.pups });
-            setTimeout(() => { updatePups(room); }, 30);
+      for (let i = 0; i < room.pups.length; i += 1) {
+        room.pups[i].update(room);
       }
+
+      io.sockets.in(room.name).emit('updateClientPups', { updateCPups: room.pups });
+      setTimeout(() => { updatePups(room); }, 30);
+    }
   }
 }
 
 function spawnPup(room, spawnTime, yVelocity) {
   if (room.name in rooms) {
-    if(room.active){
-        room.pups.push(new Pup((Math.random() * 800), 0, 0, yVelocity));
+    if (room.active) {
+      room.pups.push(new Pup((Math.random() * 800), 0, 0, yVelocity));
 
-        if(spawnTime <= 200){
-            spawnTime = 200;
-        }
-        if(yVelocity >= 20){
-            yVelocity = 20;
-        }
+      if (spawnTime <= 200) {
+        spawnTime = 200;
+      }
+      if (yVelocity >= 20) {
+        yVelocity = 20;
+      }
 
-        setTimeout(() => { spawnPup(room, spawnTime-100, yVelocity+.03); }, spawnTime);
+      setTimeout(() => { spawnPup(room, spawnTime - 100, yVelocity + 0.03); }, spawnTime);
     }
   }
 }
@@ -114,6 +114,7 @@ class Room {
     this.score = 0;
     this.pupsMissed = 0;
     this.active = false;
+    this.gameStart = true;
   }
   addPlayer(socket, newPlayer) {
     const sock = socket;
@@ -126,18 +127,17 @@ class Room {
     sock.emit('assignPlayer', { player: this.players[sock.id] });
     io.sockets.in(this.name).emit('updateClientPlayers', { updatePlayers: this.players });
 
-   /* if (this.gameStart) {
-      this.initializeGame();
-      this.gameStart = false;
-    }*/
+    if (this.gameStart) {
+        io.sockets.in(this.name).emit('showStartUI', null);
+    }
+      
     this.numPlayers += 1;
-
   }
   updatePlayer(socket, player) {
-    if(this.active){
-        const sock = socket;
-        this.players[sock.id] = player;
-        io.sockets.in(this.name).emit('updateClientPlayers', { updatePlayers: this.players });
+    if (this.active) {
+      const sock = socket;
+      this.players[sock.id] = player;
+      io.sockets.in(this.name).emit('updateClientPlayers', { updatePlayers: this.players });
     }
   }
   removePlayer(socket) {
@@ -154,6 +154,14 @@ class Room {
   }
   initializeGame() {
     this.active = true;
+    this.pups = [];
+    this.score = 0;
+    this.pupsMissed = 0;
+    this.gameStart = false;
+      
+    io.sockets.in(this.name).emit('updateClientScore', { serverScore: this.score, serverMissed: this.pupsMissed });
+    io.sockets.in(this.name).emit('hideUI', null);
+      
     spawnPup(this, 3000, 3.5);
     updatePups(this);
   }
@@ -165,38 +173,30 @@ class Room {
   }
   setPupsMissed(pupsMissed) {
     this.pupsMissed = pupsMissed;
-    if(this.pupsMissed >= 10){
-        this.active = false;
-        this.postGame();
-        
-        //this.restartGame();
+    if (this.pupsMissed >= 10) {
+      this.active = false;
+      this.postGame();
+
+        // this.restartGame();
     }
   }
-  restartGame(){
-    this.pups = [];
-    this.score = 0;
-    this.pupsMissed = 0;
-    this.active = true;
-  }
-  postGame(){
+  postGame() {
     const score = new Array(this.name, this.score);
     highScores.push(score);
-    
-    highScores.sort(function(a,b){
-        if(a[1] === b[1]){
-            return 0;
-        }
-        else{
-            return (a[1] > b[1]) ? -1 : 1;
-        }
+
+    highScores.sort((a, b) => {
+      if (a[1] === b[1]) {
+        return 0;
+      } else {
+        return (a[1] > b[1]) ? -1 : 1;
+      }
     });
-    
-    if(highScores.length >= 10){
-        highScores.pop();
+
+    if (highScores.length >= 10) {
+      highScores.pop();
     }
-    
-    console.log(highScores);
-    io.sockets.in(this.name).emit('showScores', { scores: highScores });
+
+    io.sockets.in(this.name).emit('showEndUI', { scores: highScores });
   }
 }
 
