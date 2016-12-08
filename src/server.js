@@ -21,6 +21,8 @@
  const rooms = {};
  const highScores = [];
 
+ const pupTypes = ["shibe1","daschund1","corgi1"];
+
  class Pup {
 
    constructor(x, y, xVelocity, yVelocity) {
@@ -32,6 +34,7 @@
      this.radius = 20;
      this.active = true;
      this.yAccel = 0.2;
+     this.type = pupTypes[Math.floor(Math.random() * pupTypes.length)];//"shibe1";
    }
    update(room) {
      this.yVelocity += this.yAccel;
@@ -46,6 +49,9 @@
            this.color = 'green';
 
            room.setScore(room.score + 20);
+             
+           //room.players[i].caughtPup = this.type;
+           io.sockets.in(room.name).emit('catchPup', { socketId: i, pupType: this.type });
 
            io.sockets.in(room.name).emit('updateClientScore', { serverScore: room.score, serverMissed: room.pupsMissed });
            this.active = false;
@@ -111,7 +117,7 @@
      this.players = {};
      this.pups = [];
 
-     this.availableColors = ['yellow', 'red', 'orange', 'pink'];
+     this.availableTypes = [1, 2, 3, 4];
      this.gameStart = true;
      this.numPlayers = 0;
      this.score = 0;
@@ -124,8 +130,8 @@
      sock.join(this.name);
      this.players[sock.id] = newPlayer;
 
-     const randomColor = Math.floor(Math.random() * this.availableColors.length);
-     this.players[sock.id].color = this.availableColors.splice(randomColor, 1);
+     const randomType = Math.floor(Math.random() * this.availableTypes.length);
+     this.players[sock.id].type = this.availableTypes.splice(randomType, 1);
 
      sock.emit('assignPlayer', { player: this.players[sock.id] });
      io.sockets.in(this.name).emit('updateClientPlayers', { updatePlayers: this.players });
@@ -147,7 +153,7 @@
      const sock = socket;
 
      sock.leave(this.name);
-     this.availableColors.push(this.players[sock.id].color);
+     this.availableTypes.push(this.players[sock.id].type);
      delete this.players[sock.id];
      this.numPlayers -= 1;
 
