@@ -3,6 +3,8 @@
 <head>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
+    <link rel="stylesheet" href="https://people.rit.edu/ms8565/430/css/styles.css">
+    <link href='https://fonts.googleapis.com/css?family=Nunito:400,700' rel='stylesheet' type='text/css'>
     <script type="text/babel" > 
 
         let socket;
@@ -126,7 +128,7 @@
             myPlayer = new Player(canvas.width / 2);
             socket.emit('join', { newPlayer: myPlayer, roomName: room });
             
-            startBtn = new StartBtn(100,100);
+            startBtn = new StartBtn(canvas.width/2, canvas.height - 65 );
             
             canvas.onmousedown = onMouseDown;
             canvas.onmouseup = onMouseUp;
@@ -228,6 +230,10 @@
         const draw = (e) => {
           ctx.fillStyle = "white";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
+         
+          var backgroundImage = new Image();
+          backgroundImage.src = "https://people.rit.edu/ms8565/430/media/sky.png";
+          ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
 
           for (var i in players) {
             ctx.save();
@@ -273,13 +279,26 @@
           }
 
           ctx.fillStyle = "black";
+          ctx.textAlign="left"; 
+          ctx.font="20px Arial"; 
+            
           ctx.fillText("Score: "+score+" Pups Missed: "+pupsMissed, 60, 60);
             
           if(showScores){
-              ctx.fillText("High Scores", 100, 180);
+              var scoresImage = new Image();
+              scoresImage.src = "https://people.rit.edu/ms8565/430/media/scores-screen.png";
+              ctx.drawImage(scoresImage, canvas.width/2 - 644/2, canvas.height/2 - 541/2 - 15, 644, 541);
+              
+              ctx.font="30px Arial";
+              ctx.textAlign="center"; 
+              
+              ctx.fillText("High Scores", canvas.width/2, 165);
+              
+              ctx.font="25px Arial"; 
+
               for(var i = 0; i < highScores.length; i++){
                   ctx.fillStyle = "black";
-                  ctx.fillText(i+1+". "+highScores[i][0]+": "+highScores[i][1], 100, 200 + i*10);
+                  ctx.fillText(i+1+". "+highScores[i][0]+": "+highScores[i][1], canvas.width/2, 200 + i*35);
               }
           }
           if(startBtn.active){
@@ -294,20 +313,24 @@
     </script>
 </head>
 <body>
-    <div id="game-screen" style="display: none;">
-        <canvas width="800" height="600">
-            Your browser does not support Canvas
-        </canvas>
-    </div>
-    
-    <div id="intro-screen">
-        <label for="room-name">Room Name:</label>
-        <input id="room-input" name="room-name" type="text" />
-        <input id="join" type='button' value='Join Room' />
-        <input id="create" type='button' value='Create Room' />
-        <p id="error-text"></p>
-    </div>
+    <h1>Pups in Cups</h1>
+    <div class="center">
+			<div class="content">
+                <div id="game-screen" style="display: none; text-align: center;">
+                    <canvas width="900" height="700">
+                        Your browser does not support Canvas
+                    </canvas>
+                </div>
 
-    
+                <div id="intro-screen">
+                    <label for="room-name">Room Name:</label>
+                    <input id="room-input" name="room-name" type="text" />
+                    <input id="join" type='button' value='Join Room' />
+                    <input id="create" type='button' value='Create Room' />
+                    <p id="error-text"></p>
+                </div>
+                
+            </div>
+        </div>
 </body>
 </html>

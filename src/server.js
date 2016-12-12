@@ -57,7 +57,7 @@
            this.active = false;
          }
        }
-       if (this.y >= 600) {
+       if (this.y >= 700) {
          room.setPupsMissed(room.pupsMissed + 1);
 
          io.sockets.in(room.name).emit('updateClientScore', { serverScore: room.score, serverMissed: room.pupsMissed });
@@ -97,7 +97,7 @@
 
    if (room.name in rooms) {
      if (room.active) {
-       room.pups.push(new Pup((Math.random() * 800), 0, 0, newYVelocity));
+       room.pups.push(new Pup((Math.random() * 900), 0, 0, newYVelocity));
 
        if (newSpawnTime <= 200) {
          newSpawnTime = 200;
