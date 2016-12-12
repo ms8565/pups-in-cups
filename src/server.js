@@ -1,8 +1,10 @@
+ 'use strict';
+ 
  const http = require('http');
  const fs = require('fs');
  const socketio = require('socket.io');
 
- const port = process.env.PORT || process.env.NODE_PORT || 3000;
+ const port = process.env.PORT || process.env.NODE_PORT || 3100;
 
  const index = fs.readFileSync(`${__dirname}/../client/index.html`);
 

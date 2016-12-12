@@ -24,6 +24,9 @@
         let highScores = [];
 
         let startBtn;
+		
+		let onboardImg;
+		let scoresImg;
 
         
         class Player {
@@ -57,12 +60,16 @@
             constructor(x, y){
                 this.x = x;
                 this.y = y;
-                this.img = "http://madison.ismakinggames.com/pups-in-cups/startBtn.png";
-                this.hoverImg = "http://madison.ismakinggames.com/pups-in-cups/startBtnHover.png";
                 this.height = 60;
                 this.width = 200;
                 this.hover = false;
                 this.active = true;
+				
+				this.img = new Image();
+				this.img.src = "https://people.rit.edu/ms8565/430/media/buttons/startBtn.png";
+				
+				this.hoverImg = new Image();
+				this.hoverImg.src = "https://people.rit.edu/ms8565/430/media/buttons/startBtnHover.png";
             }
             pointInside(point){
                 return (point.x >= this.x - this.width/2 && point.x <= this.x + this.width/2) && (point.y >= this.y - this.height/2 && point.y <= this.y + this.height/2);
@@ -71,15 +78,13 @@
                 socket.emit('startGame', { startGame: true });
             }
             draw(ctx){
-                var btnImage = new Image();
                 
                 if(this.hover){
-                    btnImage.src = this.hoverImg;
+                    ctx.drawImage(this.hoverImg, this.x - this.width/2, this.y - this.height/2, this.width, this.height);
                 }
                 else{
-                    btnImage.src = this.img;
+                    ctx.drawImage(this.img, this.x - this.width/2, this.y - this.height/2, this.width, this.height);
                 }
-                ctx.drawImage(btnImage, this.x - this.width/2, this.y - this.height/2, this.width, this.height);
             }
         }
         
@@ -108,6 +113,7 @@
 
             socket.on('joinRoom', (data) => {
                 startGame(data.roomName);
+				socket.roomName = data.roomName;
                 //myPlayer = new Player(canvas.width / 2);
                 //socket.emit('join', { newPlayer: myPlayer, roomName: "room1" });
             });
@@ -128,12 +134,21 @@
             myPlayer = new Player(canvas.width / 2);
             socket.emit('join', { newPlayer: myPlayer, roomName: room });
             
+			//Set up UI
             startBtn = new StartBtn(canvas.width/2, canvas.height - 65 );
+			
+			onboardImg = new Image();
+            onboardImg.src = "https://people.rit.edu/ms8565/430/media/onboarding.png";
+			
+			scoresImg = new Image();
+            scoresImg.src = "https://people.rit.edu/ms8565/430/media/scores-screen.png";
             
+			//Mouse interaction
             canvas.onmousedown = onMouseDown;
             canvas.onmouseup = onMouseUp;
             canvas.onmousemove = onMouseMove;
-
+			
+			//Socket events
             socket.on('updateClientPlayers', (data) => {
                 players = data.updatePlayers;
                 draw();
@@ -169,7 +184,6 @@
                 showScores = false;
                 startBtn.active = false;
                 
-                console.log("hide maybe??");
             });
             socket.on('catchPup', (data) => {
                if(data.socketId === socket.id){
@@ -238,11 +252,7 @@
           for (var i in players) {
             ctx.save();
             ctx.fillStyle = players[i].color;
-            //ctx.beginPath();
-            //60, 34
-            //ctx.arc(players[i].x, players[i].y, 40, 0, 2 * Math.PI, false)
-            //ctx.fill();
-            //ctx.stroke();
+
             var cupBackImage = new Image();
             cupBackImage.src = "http://madison.ismakinggames.com/pups-in-cups/cup"+players[i].type+"Back.png";
             ctx.drawImage(cupBackImage, players[i].x - 60, players[i].y, 120, 70);
@@ -255,23 +265,12 @@
             var cupFrontImage = new Image();
             cupFrontImage.src = "http://madison.ismakinggames.com/pups-in-cups/cup"+players[i].type+"Front.png";
             ctx.drawImage(cupFrontImage, players[i].x - 60, players[i].y, 120, 70);
-              
-            //players[i].draw(ctx);
-            //players[i].print();
+           
               
 
             ctx.restore();
           }
           for (var i = 0; i < pups.length; i++) {
-            /*ctx.save();
-
-            ctx.fillStyle = pups[i].color;
-            ctx.beginPath();
-            ctx.arc(pups[i].x, pups[i].y, 20, 0, 2 * Math.PI, false)
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.restore();*/
               
             var pupImage = new Image();
             pupImage.src = "http://madison.ismakinggames.com/pups-in-cups/"+pups[i].type+".png";
@@ -282,12 +281,17 @@
           ctx.textAlign="left"; 
           ctx.font="20px Arial"; 
             
-          ctx.fillText("Score: "+score+" Pups Missed: "+pupsMissed, 60, 60);
-            
+          ctx.fillText("Score: "+score+" \t Pups Missed: "+pupsMissed, 60, 60);
+		  
+		  ctx.textAlign="right"; 
+		  ctx.fillText("Room Name: "+socket.roomName, canvas.width - 60, 60);
+		  
+          if(startBtn.active){
+             ctx.drawImage(onboardImg, canvas.width/2 - 644/2, canvas.height/2 - 541/2 - 15, 644, 541);
+             startBtn.draw(ctx);
+          }
           if(showScores){
-              var scoresImage = new Image();
-              scoresImage.src = "https://people.rit.edu/ms8565/430/media/scores-screen.png";
-              ctx.drawImage(scoresImage, canvas.width/2 - 644/2, canvas.height/2 - 541/2 - 15, 644, 541);
+              ctx.drawImage(scoresImg, canvas.width/2 - 644/2, canvas.height/2 - 541/2 - 15, 644, 541);
               
               ctx.font="30px Arial";
               ctx.textAlign="center"; 
@@ -301,10 +305,7 @@
                   ctx.fillText(i+1+". "+highScores[i][0]+": "+highScores[i][1], canvas.width/2, 200 + i*35);
               }
           }
-          if(startBtn.active){
-              //draw start button
-             startBtn.draw(ctx);
-          }
+          
         };
         
         
@@ -323,14 +324,27 @@
                 </div>
 
                 <div id="intro-screen">
-                    <label for="room-name">Room Name:</label>
-                    <input id="room-input" name="room-name" type="text" />
-                    <input id="join" type='button' value='Join Room' />
-                    <input id="create" type='button' value='Create Room' />
-                    <p id="error-text"></p>
+					<h2 class="startStep">Save those pups!</h2>
+					<p>Somehow, someway, puppies are falling from the sky and you need to catch them! These are picky pups, and they can only be caught in the finest of your dishes. You and up to 3 other players must control the cups at the bottom of the screen and line them up to catch the falling dogs. For each dog that lands safely, your team gains a point. But watch out: once you and your friends miss 10 unlucky puppies, the game is over.</p>
+					<h2 class="startStep">Join or create a room! Rooms can hold up to four players</h2>
+					<div id="creation-container>
+						<label for="room-name" style="font-family:'Nunito', sans-serif; color: #A1142A; font-weight:400; font-size:24px;">Room Name:</label>
+						<input id="room-input" name="room-name" type="text" style="    height: 30px; font-size: 14pt;" />
+						<button type="submit" id="join" value='Join Room'></button>
+						<button type="submit" id="create" value='Create Room'></button>
+					</div>
+                    <p id="error-text" style="color: #bf1e1e"></p>
                 </div>
                 
             </div>
+			
+			<footer>
+				&#169; Madison Smith, 2016
+				</br>
+				Art created by Karen Navarro
+                </br>
+                <a href="http://blog.paperbicycle.com/2011/08/daily-patterns-teacups-for-your-teapot.html">Background Pattern</a>
+			</footer>
         </div>
 </body>
 </html>
